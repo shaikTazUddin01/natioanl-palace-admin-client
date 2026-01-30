@@ -31,7 +31,7 @@ const TDSelect = ({
   const errorMessage = errors?.[name]?.message as string | undefined;
 
   return (
-    <div className="w-full space-y-1">
+    <div className="w-full space-y-2">
       <label htmlFor={name} className="text-sm font-medium text-gray-700">
         {label} {required && <span className="text-red-500">*</span>}
       </label>

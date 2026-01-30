@@ -17,7 +17,8 @@ import {
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { logout } from "@/src/redux/features/auth/authSlice";
-
+import logo from "@/src/assets/logo.jpg";
+import Image from "next/image";
 const { Header, Content, Footer, Sider } = Layout;
 const { useBreakpoint } = Grid;
 
@@ -168,13 +169,13 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
         ],
       },
     ],
-    []
+    [],
   );
 
   // ✅ Root submenu keys (parent menus)
   const rootSubmenuKeys = useMemo(
     () => ["2-product", "3-purchase", "4-sales", "5-stock", "6-accounts"],
-    []
+    [],
   );
 
   // ✅ Accordion openKeys (একটা parent ওপেন থাকলে অন্যটা ক্লোজ)
@@ -215,9 +216,14 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
     <div className="h-full flex flex-col ">
       {/* Sidebar Header */}
       <div className="h-16 flex items-center justify-between px-6 shrink-0">
-        <div className="flex items-center gap-2 font-semibold text-lg text-slate-100">
-          <DashboardOutlined />
-          <span>Admin</span>
+        <div className="h-16 w-32 relative">
+          <Image
+            src={logo}
+            alt="logo"
+            fill
+            className="object-contain"
+            priority
+          />
         </div>
 
         {/* ✅ Mobile close icon */}
@@ -246,7 +252,7 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
   );
 
   return (
-    <Layout className="min-h-screen">
+    <Layout className="">
       {/* ✅ Desktop Fixed Sidebar */}
       {isDesktop ? (
         <Sider
@@ -261,9 +267,11 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
           placement="left"
-          width={260}
-          bodyStyle={{ padding: 0 }}
-          headerStyle={{ display: "none" }}
+          size="default"
+          styles={{
+            body: { padding: 0 },
+            header: { display: "none" },
+          }}
         >
           {SidebarContent}
         </Drawer>
@@ -272,7 +280,8 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
       {/* ✅ Main Layout offset for desktop */}
       <Layout className={isDesktop ? "ml-[240px]" : ""}>
         {/* ✅ Header (dark so hamburger icon white looks good) */}
-        <Header className="bg-slate-900 px-6 flex items-center justify-between shadow-sm shrink-0">
+        <Header className="bg-slate-900 px-6 
+      flex items-center justify-between shadow-sm ">
           <div className="flex items-center gap-3">
             {/* ✅ Mobile hamburger icon (white) */}
             {!isDesktop && (
@@ -282,7 +291,6 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
               >
                 {/* <MenuOutlined className="text-white text-lg" /> */}
                 <MenuOutlined style={{ color: "#ffffff", fontSize: "18px" }} />
-
               </button>
             )}
 
@@ -304,16 +312,16 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
         </Header>
 
         {/* Content */}
-        <Content className="flex-1 p-6 bg-slate-100 overflow-y-auto">
-          <div className="bg-white rounded-xl shadow-sm p-6 min-h-full">
+        <Content className="p-6 bg-slate-100">
+          <div className="bg-white rounded-xl shadow-sm p-6 ">
             {children}
           </div>
         </Content>
 
         {/* Footer */}
-        <Footer className="text-center text-xs text-slate-500 shrink-0">
-          © {new Date().getFullYear()} Admin Dashboard
-        </Footer>
+        {/* <Footer className="text-center text-xs text-slate-500 ">
+          © {new Date().getFullYear()} National Palace
+        </Footer> */}
       </Layout>
     </Layout>
   );

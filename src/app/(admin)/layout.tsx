@@ -5,7 +5,7 @@ const layout = ({children}:{children:ReactNode}) => {
     return (
         <div>
             <NavLayout>
-                <div className='min-h-[100vh]'>
+                <div className='min-h-[75vh]'>
                 {children}
                 </div>
             </NavLayout>

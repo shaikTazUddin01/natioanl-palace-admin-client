@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import TDForm from "@/src/components/form/TDForm";
 import TDInput from "@/src/components/form/TDInput";
 import TDSelect from "@/src/components/form/TDSelect";
+import { useAddCategoryMutation } from "@/src/redux/features/category/categoryApi";
 
 /* ---------------- Demo JSON ---------------- */
 const statusOptions = [
@@ -28,21 +29,32 @@ const categoryValidation = z.object({
 /* ---------------- Page ---------------- */
 const Page = () => {
   const router = useRouter();
+  const [addCategory] = useAddCategoryMutation();
 
   const handleCreateCategory: SubmitHandler<FieldValues> = async (data) => {
+    const toastId = toast.loading("Creating category...");
+
     try {
       console.log("Create Category Payload:", data);
 
-      // 🔗 later API call here
-      toast.success("Category created successfully");
-      router.push("/categories");
+      const res = await addCategory(data).unwrap();
+
+      // ✅ তোমার backend response যদি { data: {...} } হয়
+      if (res?.data) {
+        toast.success("Category created successfully", { id: toastId });
+        router.push("/categories");
+      } else {
+        toast.error("Something went wrong", { id: toastId });
+      }
     } catch (error: any) {
-      toast.error(error?.message || "Something went wrong");
+      toast.error(error?.data?.message || "Something went wrong", {
+        id: toastId,
+      });
     }
   };
 
   return (
-    <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow p-8">
+    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-8">
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-slate-800">
