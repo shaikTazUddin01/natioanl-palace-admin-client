@@ -3,180 +3,281 @@
 import { useMemo, useState } from "react";
 import { Table, Tag, Space, Button, Input, DatePicker, Select } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { EyeOutlined, DeleteOutlined } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
+
+import { useGetSalesQuery } from "@/src/redux/features/sales/salesApi";
+import { useGetPurchasesQuery } from "@/src/redux/features/purchase/purchaseApi";
 
 const { Option } = Select;
 
-/* ---------------- Demo Total Payment Data ---------------- */
 type PaymentRow = {
   key: string;
-  customerName: string;
+  type: "SALE" | "PURCHASE"; // ✅ transaction type
+  partyName: string; // customer/supplier
   invoiceNo: string;
   date: string; // YYYY-MM-DD
-  paymentType: "Cash" | "Bank" | "Mobile Banking";
-  amount: number;
+  method?: string | null; // CASH/BANK/BKASH/NAGAD
+  amount: number; // paid amount
+  due: number; // due amount
   note?: string;
 };
 
-const paymentData: PaymentRow[] = [
-  {
-    key: "1",
-    customerName: "Rahim Traders",
-    invoiceNo: "SAL-260120-1023",
-    date: "2026-01-20",
-    paymentType: "Cash",
-    amount: 5000,
-    note: "Partial payment",
-  },
-  {
-    key: "2",
-    customerName: "Nabila Store",
-    invoiceNo: "SAL-260122-1134",
-    date: "2026-01-22",
-    paymentType: "Mobile Banking",
-    amount: 1000,
-    note: "Bkash payment",
-  },
-  {
-    key: "3",
-    customerName: "Rahim Traders",
-    invoiceNo: "SAL-260123-1401",
-    date: "2026-01-23",
-    paymentType: "Bank",
-    amount: 4500,
-    note: "Bank transfer",
-  },
-  {
-    key: "4",
-    customerName: "Walk-in Customer",
-    invoiceNo: "SAL-260115-0977",
-    date: "2026-01-15",
-    paymentType: "Cash",
-    amount: 18000,
-    note: "Full paid",
-  },
-];
-
-/* ---------------- Table Columns ---------------- */
-const columns: ColumnsType<PaymentRow> = [
-  {
-    title: "Customer",
-    dataIndex: "customerName",
-    key: "customerName",
-    fixed: "left",
-  },
-  {
-    title: "Invoice No",
-    dataIndex: "invoiceNo",
-    key: "invoiceNo",
-  },
-  {
-    title: "Date",
-    dataIndex: "date",
-    key: "date",
-  },
-  {
-    title: "Payment Type",
-    dataIndex: "paymentType",
-    key: "paymentType",
-    render: (type) => {
-      const color =
-        type === "Cash" ? "green" : type === "Bank" ? "blue" : "purple";
-      return <Tag color={color}>{type}</Tag>;
-    },
-  },
-  {
-    title: "Amount",
-    dataIndex: "amount",
-    key: "amount",
-    render: (amount) => `৳ ${amount}`,
-  },
-  {
-    title: "Note",
-    dataIndex: "note",
-    key: "note",
-    ellipsis: true,
-    render: (note) => note || "-",
-  },
-  {
-    title: "Action",
-    key: "action",
-    fixed: "right",
-    render: () => (
-      <Space>
-        <Button size="small" icon={<EyeOutlined />} />
-        <Button size="small" icon={<DeleteOutlined />} danger />
-      </Space>
-    ),
-  },
-];
+const getDate = (d?: any) => {
+  if (!d) return "-";
+  return dayjs(d).format("YYYY-MM-DD");
+};
 
 const Page = () => {
-  const router = useRouter();
+  // filters
+  const [partyQuery, setPartyQuery] = useState("");
+  const [invoiceQuery, setInvoiceQuery] = useState("");
+  const [date, setDate] = useState<string | null>(null);
+  const [typeFilter, setTypeFilter] = useState<"SALE" | "PURCHASE" | undefined>(
+    undefined
+  );
 
-  const [customerQuery, setCustomerQuery] = useState<string>("");
-  const [invoiceQuery, setInvoiceQuery] = useState<string>(""); // ✅ new
-  const [date, setDate] = useState<string | null>(null); // YYYY-MM-DD
-  const [paymentType, setPaymentType] = useState<string | undefined>(undefined);
+  // ✅ API data
+  const {
+    data: salesRes,
+    isLoading: salesLoading,
+    isFetching: salesFetching,
+    isError: salesError,
+  } = useGetSalesQuery(undefined);
 
+  const {
+    data: purchaseRes,
+    isLoading: purchaseLoading,
+    isFetching: purchaseFetching,
+    isError: purchaseError,
+  } = useGetPurchasesQuery(undefined);
+
+  const rawSales = salesRes?.data ?? salesRes ?? [];
+  const rawPurchases = purchaseRes?.data ?? purchaseRes ?? [];
+
+  // ✅ Build unified rows (payments history style)
+  const allRows: PaymentRow[] = useMemo(() => {
+    const rows: PaymentRow[] = [];
+
+    if (Array.isArray(rawSales)) {
+      rawSales.forEach((s: any) => {
+        const total = Number(s?.totalAmount ?? 0);
+        const paid = Number(s?.paidAmount ?? 0);
+        const due = Number(s?.dueAmount ?? Math.max(total - paid, 0));
+
+        rows.push({
+          key: s?._id || s?.id || s?.invoiceNo || crypto.randomUUID(),
+          type: "SALE",
+          partyName: s?.customerName ?? "Walk-in Customer",
+          invoiceNo: s?.invoiceNo ?? "-",
+          date: getDate(s?.date || s?.createdAt),
+          method: s?.paymentMethod ?? null,
+          amount: paid,
+          due,
+          note: s?.note ?? "",
+        });
+      });
+    }
+
+    if (Array.isArray(rawPurchases)) {
+      rawPurchases.forEach((p: any) => {
+        const total = Number(p?.totalAmount ?? 0);
+        const paid = Number(p?.paidAmount ?? 0);
+        const due = Number(p?.dueAmount ?? Math.max(total - paid, 0));
+
+        rows.push({
+          key: p?._id || p?.id || p?.invoiceNo || crypto.randomUUID(),
+          type: "PURCHASE",
+          partyName: p?.supplierName ?? "-",
+          invoiceNo: p?.invoiceNo ?? "-",
+          date: getDate(p?.date || p?.createdAt),
+          method: p?.paymentMethod ?? null,
+          amount: paid,
+          due,
+          note: p?.note ?? "",
+        });
+      });
+    }
+
+    // ✅ sort latest first
+    return rows.sort((a, b) => (a.date < b.date ? 1 : -1));
+  }, [rawSales, rawPurchases]);
+
+  // ✅ Summary حساب
+  const summary = useMemo(() => {
+    let totalSalesPaid = 0;
+    let totalSalesDue = 0;
+
+    let totalPurchasePaid = 0;
+    let totalPurchaseDue = 0;
+
+    if (Array.isArray(rawSales)) {
+      rawSales.forEach((s: any) => {
+        const total = Number(s?.totalAmount ?? 0);
+        const paid = Number(s?.paidAmount ?? 0);
+        const due = Number(s?.dueAmount ?? Math.max(total - paid, 0));
+
+        totalSalesPaid += paid;
+        totalSalesDue += due;
+      });
+    }
+
+    if (Array.isArray(rawPurchases)) {
+      rawPurchases.forEach((p: any) => {
+        const total = Number(p?.totalAmount ?? 0);
+        const paid = Number(p?.paidAmount ?? 0);
+        const due = Number(p?.dueAmount ?? Math.max(total - paid, 0));
+
+        totalPurchasePaid += paid;
+        totalPurchaseDue += due;
+      });
+    }
+
+    const cashInHand = totalSalesPaid - totalPurchasePaid;
+
+    return {
+      cashInHand,
+      receivable: totalSalesDue,
+      payable: totalPurchaseDue,
+      totalSalesPaid,
+      totalPurchasePaid,
+    };
+  }, [rawSales, rawPurchases]);
+
+  // ✅ Filters on table rows
   const filteredData = useMemo(() => {
-    const customerQ = customerQuery.trim().toLowerCase();
+    const partyQ = partyQuery.trim().toLowerCase();
     const invoiceQ = invoiceQuery.trim().toLowerCase();
 
-    return paymentData.filter((row) => {
-      const matchCustomer =
-        !customerQ || row.customerName.toLowerCase().includes(customerQ);
+    return allRows.filter((row) => {
+      const matchParty =
+        !partyQ || row.partyName.toLowerCase().includes(partyQ);
 
       const matchInvoice =
         !invoiceQ || row.invoiceNo.toLowerCase().includes(invoiceQ);
 
       const matchDate = !date || row.date === date;
 
-      const matchType = !paymentType || row.paymentType === paymentType;
+      const matchType = !typeFilter || row.type === typeFilter;
 
-      return matchCustomer && matchInvoice && matchDate && matchType;
+      return matchParty && matchInvoice && matchDate && matchType;
     });
-  }, [customerQuery, invoiceQuery, date, paymentType]);
+  }, [allRows, partyQuery, invoiceQuery, date, typeFilter]);
 
-  const totalAmount = useMemo(() => {
-    return filteredData.reduce((sum, row) => sum + (row.amount || 0), 0);
-  }, [filteredData]);
+  const loading = salesLoading || salesFetching || purchaseLoading || purchaseFetching;
+  const isError = salesError || purchaseError;
+
+  // ✅ Table Columns
+  const columns: ColumnsType<PaymentRow> = [
+    {
+      title: "Type",
+      dataIndex: "type",
+      key: "type",
+      render: (t) =>
+        t === "SALE" ? <Tag color="green">SALE</Tag> : <Tag color="blue">PURCHASE</Tag>,
+    },
+    {
+      title: "Customer / Supplier",
+      dataIndex: "partyName",
+      key: "partyName",
+      fixed: "left",
+    },
+    {
+      title: "Invoice No",
+      dataIndex: "invoiceNo",
+      key: "invoiceNo",
+      render: (v) => <strong>{v}</strong>,
+    },
+    { title: "Date", dataIndex: "date", key: "date" },
+    {
+      title: "Paid Amount",
+      dataIndex: "amount",
+      key: "amount",
+      render: (v) => `৳ ${Number(v).toLocaleString()}`,
+    },
+    {
+      title: "Due",
+      dataIndex: "due",
+      key: "due",
+      render: (v) => (
+        <Tag color={Number(v) > 0 ? "volcano" : "green"}>
+          ৳ {Number(v).toLocaleString()}
+        </Tag>
+      ),
+    },
+    {
+      title: "Method",
+      dataIndex: "method",
+      key: "method",
+      render: (m) => (m ? <Tag>{m}</Tag> : <Tag color="red">DUE</Tag>),
+    },
+    {
+      title: "Note",
+      dataIndex: "note",
+      key: "note",
+      ellipsis: true,
+      render: (n) => n || "-",
+    },
+  ];
 
   return (
     <div className="bg-white rounded-2xl shadow p-6">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Total Payment</h1>
-          <p className="text-slate-500">
-            Manage all customer payments with filters
-          </p>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">Total Account</h1>
+        <p className="text-slate-500">
+          Cash In Hand, Receivable (Customer Due) and Payable (Supplier Due)
+        </p>
+      </div>
+
+      {/* ✅ Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="p-5 rounded-2xl bg-slate-50 border">
+          <div className="text-sm text-slate-500">Cash In Hand</div>
+          <div className={`text-2xl font-bold ${summary.cashInHand < 0 ? "text-red-600" : "text-slate-900"}`}>
+            ৳ {Number(summary.cashInHand).toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-500 mt-2">
+            Sales Paid − Purchase Paid
+          </div>
         </div>
 
-        <Button type="primary" onClick={() => router.push("/payments/create")}>
-          Add Payment
-        </Button>
+        <div className="p-5 rounded-2xl bg-slate-50 border">
+          <div className="text-sm text-slate-500">Receivable (Customer Due)</div>
+          <div className="text-2xl font-bold text-orange-600">
+            ৳ {Number(summary.receivable).toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-500 mt-2">
+            Total Due from Sales
+          </div>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-slate-50 border">
+          <div className="text-sm text-slate-500">Payable (Supplier Due)</div>
+          <div className="text-2xl font-bold text-blue-700">
+            ৳ {Number(summary.payable).toLocaleString()}
+          </div>
+          <div className="text-xs text-slate-500 mt-2">
+            Total Due from Purchases
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="mb-4 grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
           <div className="text-sm font-medium text-slate-700 mb-1">
-            Customer Name
+            Customer / Supplier
           </div>
           <Input
-            placeholder="Search customer"
-            value={customerQuery}
-            onChange={(e) => setCustomerQuery(e.target.value)}
+            placeholder="Search name"
+            value={partyQuery}
+            onChange={(e) => setPartyQuery(e.target.value)}
             allowClear
           />
         </div>
 
         <div>
-          <div className="text-sm font-medium text-slate-700 mb-1">
-            Invoice No
-          </div>
+          <div className="text-sm font-medium text-slate-700 mb-1">Invoice No</div>
           <Input
             placeholder="Search invoice"
             value={invoiceQuery}
@@ -189,47 +290,55 @@ const Page = () => {
           <div className="text-sm font-medium text-slate-700 mb-1">Date</div>
           <DatePicker
             className="w-full"
-            onChange={(_, dateString) =>
-              setDate(dateString ? String(dateString) : null)
-            }
+            onChange={(_, dateString) => setDate(dateString ? String(dateString) : null)}
             allowClear
           />
         </div>
 
         <div>
-          <div className="text-sm font-medium text-slate-700 mb-1">
-            Payment Type
-          </div>
+          <div className="text-sm font-medium text-slate-700 mb-1">Type</div>
           <Select
             className="w-full"
             placeholder="Select type"
-            value={paymentType}
-            onChange={(v) => setPaymentType(v)}
+            value={typeFilter}
+            onChange={(v) => setTypeFilter(v)}
             allowClear
           >
-            <Option value="Cash">Cash</Option>
-            <Option value="Bank">Bank</Option>
-            <Option value="Mobile Banking">Mobile Banking</Option>
+            <Option value="SALE">SALE</Option>
+            <Option value="PURCHASE">PURCHASE</Option>
           </Select>
         </div>
       </div>
 
-      {/* Summary */}
-      <div className="mb-4 flex items-center justify-between">
-        <div className="text-slate-600 text-sm">
-          Showing <span className="font-semibold">{filteredData.length}</span>{" "}
-          record(s)
-        </div>
-        <div className="text-slate-800 font-semibold">Total: ৳ {totalAmount}</div>
+      {/* Reset */}
+      <div className="mb-4 flex justify-end">
+        <Button
+          danger
+          onClick={() => {
+            setPartyQuery("");
+            setInvoiceQuery("");
+            setDate(null);
+            setTypeFilter(undefined);
+          }}
+        >
+          Reset
+        </Button>
       </div>
 
       {/* Table */}
-      <Table
-        columns={columns}
-        dataSource={filteredData}
-        scroll={{ x: 1100 }}
-        pagination={{ pageSize: 10 }}
-      />
+      {isError ? (
+        <div className="p-4 rounded-lg bg-red-50 text-red-600">
+          Failed to load account data. Please try again.
+        </div>
+      ) : (
+        <Table
+          columns={columns}
+          dataSource={filteredData}
+          loading={loading}
+          scroll={{ x: 1100 }}
+          pagination={{ pageSize: 10 }}
+        />
+      )}
     </div>
   );
 };

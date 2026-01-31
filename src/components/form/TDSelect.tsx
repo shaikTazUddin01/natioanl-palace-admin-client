@@ -13,6 +13,7 @@ interface IProps {
   size?: "sm" | "md" | "lg";
   defaultValue?: string | undefined;
   placeholder?:string
+   disabled?: boolean;
 }
 
 const TDSelect = ({
@@ -21,7 +22,8 @@ const TDSelect = ({
   options,
   size = "md",
   defaultValue,
-  required = false
+  required = false,
+  disabled=false
 }: IProps) => {
   const {
     register,
