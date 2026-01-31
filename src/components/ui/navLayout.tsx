@@ -17,7 +17,7 @@ import {
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { logout } from "@/src/redux/features/auth/authSlice";
-import logo from "@/src/assets/logo.jpg";
+import logo from "@/src/assets/logo.png";
 import Image from "next/image";
 const { Header, Content, Footer, Sider } = Layout;
 const { useBreakpoint } = Grid;
@@ -215,8 +215,8 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
   const SidebarContent = (
     <div className="h-full flex flex-col ">
       {/* Sidebar Header */}
-      <div className="h-16 flex items-center justify-between px-6 shrink-0">
-        <div className="h-16 w-32 relative">
+      <div className="h-20 flex items-center justify-between px-6 shrink-0">
+        <div className="h-28 w-32 relative">
           <Image
             src={logo}
             alt="logo"

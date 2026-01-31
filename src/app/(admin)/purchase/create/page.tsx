@@ -84,7 +84,7 @@ const Page = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow p-8">
+    <div className="max-w-4xl mx-auto bg-white rounded-2xl  p-8">
       {/* Header */}
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold text-slate-800">New Purchase</h1>
