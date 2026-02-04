@@ -1,61 +1,35 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Table, Tag, Space, Button, Modal } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { useState } from "react";
+import { Button } from "antd";
 import { useRouter } from "next/navigation";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
-
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { FieldValues, SubmitHandler } from "react-hook-form";
 
-import TDForm from "@/src/components/form/TDForm";
-import TDInput from "@/src/components/form/TDInput";
-import TDSelect from "@/src/components/form/TDSelect";
+
 
 import {
   useGetCategoriesQuery,
   useDeleteCategoryMutation,
   useUpdateCategoryMutation,
 } from "@/src/redux/features/category/categoryApi";
-
-/* ---------------- Status Options ---------------- */
-const statusOptions = [
-  { label: "Active", value: "active" },
-  { label: "Inactive", value: "inactive" },
-];
-
-/* ---------------- Validation (same as create) ---------------- */
-const categoryValidation = z.object({
-  name: z.string().min(1, "Category name is required"),
-  code: z.string().min(1, "Category code is required"),
-  status: z.string().min(1, "Status is required"),
-  description: z.string().optional(),
-});
-
-type TCategoryRow = {
-  key: string;
-  _id?: string;
-  name: string;
-  code: string;
-  description?: string;
-  status: "active" | "inactive";
-};
+import { TCategoryRow } from "@/src/types";
+import CategoryTable from "@/src/components/pages/categories/CategoryTable";
+import UpdateCategoryModal from "@/src/components/pages/categories/UpdateCategoryModel";
 
 const Page = () => {
   const router = useRouter();
 
-  const { data, isLoading, isFetching, isError } = useGetCategoriesQuery(undefined);
+  const { data, isLoading, isFetching, isError } =
+    useGetCategoriesQuery(undefined);
+
   const [deleteCategory] = useDeleteCategoryMutation();
   const [updateCategory] = useUpdateCategoryMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);
 
-  // ✅ adjust based on your API response shape
   const rawCategories = data?.data ?? data ?? [];
 
   const categoryData: TCategoryRow[] = Array.isArray(rawCategories)
@@ -128,9 +102,7 @@ const Page = () => {
     const toastId = toast.loading("Updating category...");
 
     try {
-      // ✅ your RTK update signature: updateCategory({ id, ...data })
       await updateCategory({ id, ...formData }).unwrap();
-
       toast.success("Category updated successfully", { id: toastId });
       closeModal();
     } catch (error: any) {
@@ -139,70 +111,6 @@ const Page = () => {
       });
     }
   };
-
-  const columns: ColumnsType<TCategoryRow> = useMemo(
-    () => [
-      {
-        title: "Category Name",
-        dataIndex: "name",
-        key: "name",
-        fixed: "left",
-      },
-      {
-        title: "Code",
-        dataIndex: "code",
-        key: "code",
-      },
-      {
-        title: "Description",
-        dataIndex: "description",
-        key: "description",
-        ellipsis: true,
-        render: (text) => text || "-",
-      },
-      {
-        title: "Status",
-        dataIndex: "status",
-        key: "status",
-        render: (status: "active" | "inactive") => (
-          <Tag color={status === "active" ? "green" : "red"}>
-            {status === "active" ? "Active" : "Inactive"}
-          </Tag>
-        ),
-      },
-      {
-        title: "Action",
-        key: "action",
-        fixed: "right",
-        render: (_, record) => (
-          <Space>
-            <Button
-              size="small"
-              icon={<EditOutlined />}
-              type="primary"
-              onClick={() => openUpdateModal(record)}
-            />
-            <Button
-              size="small"
-              icon={<DeleteOutlined />}
-              danger
-              onClick={() => handleDelete(record._id)}
-            />
-          </Space>
-        ),
-      },
-    ],
-    [rawCategories]
-  );
-
-  const defaultValues = selected
-    ? {
-        name: selected?.name ?? "",
-        code: selected?.code ?? "",
-        status: selected?.status ?? "active",
-        description: selected?.description ?? "",
-      }
-    : undefined;
 
   return (
     <div className="bg-white rounded-2xl shadow p-6">
@@ -226,70 +134,20 @@ const Page = () => {
           Failed to load categories. Please try again.
         </div>
       ) : (
-        <Table
-          columns={columns}
-          dataSource={categoryData}
+        <CategoryTable
+          data={categoryData}
           loading={isLoading || isFetching}
-          scroll={{ x: 1000 }}
-          pagination={{ pageSize: 10 }}
+          onEdit={openUpdateModal}
+          onDelete={handleDelete}
         />
       )}
 
-      {/* Update Modal */}
-      <Modal
-        title="Update Category"
+      <UpdateCategoryModal
         open={isModalOpen}
-        onCancel={closeModal}
-        footer={null}
-        destroyOnHidden
-      >
-        {selected ? (
-          <div className="pt-2">
-            {/* 
-              NOTE:
-              TDForm যদি defaultValues support করে: perfect.
-              যদি না করে—TDForm.tsx দিলে আমি setValue দিয়ে prefill fix করে দিব।
-            */}
-            <TDForm
-              key={selected?._id || selected?.id}
-              resolver={zodResolver(categoryValidation)}
-              onSubmit={handleUpdate}
-              defaultValues={defaultValues as any}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
-                <TDInput label="Category Name" name="name" required />
-
-                <TDInput
-                  label="Category Code"
-                  name="code"
-                  required
-                  placeholder="e.g. ELEC"
-                />
-
-                <TDSelect
-                  label="Status"
-                  name="status"
-                  options={statusOptions}
-                  required
-                />
-
-                <TDInput
-                  label="Description (Optional)"
-                  name="description"
-                  placeholder="Short description of the category"
-                />
-              </div>
-
-              <div className="mt-6 flex justify-end gap-2">
-                <Button onClick={closeModal}>Cancel</Button>
-                <Button type="primary" htmlType="submit">
-                  Update Category
-                </Button>
-              </div>
-            </TDForm>
-          </div>
-        ) : null}
-      </Modal>
+        selected={selected}
+        onClose={closeModal}
+        onSubmit={handleUpdate}
+      />
     </div>
   );
 };

@@ -3,7 +3,6 @@
 
 import { FieldValues, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -11,20 +10,13 @@ import TDForm from "@/src/components/form/TDForm";
 import TDInput from "@/src/components/form/TDInput";
 import TDSelect from "@/src/components/form/TDSelect";
 import { useAddCategoryMutation } from "@/src/redux/features/category/categoryApi";
+import { categoryValidation } from "@/src/components/Validation/categoryValidation";
 
 /* ---------------- Demo JSON ---------------- */
 const statusOptions = [
   { label: "Active", value: "active" },
   { label: "Inactive", value: "inactive" },
 ];
-
-/* ---------------- Validation ---------------- */
-const categoryValidation = z.object({
-  name: z.string().min(1, "Category name is required"),
-  code: z.string().min(1, "Category code is required"),
-  status: z.string().min(1, "Status is required"),
-  description: z.string().optional(),
-});
 
 /* ---------------- Page ---------------- */
 const Page = () => {
@@ -39,7 +31,6 @@ const Page = () => {
 
       const res = await addCategory(data).unwrap();
 
-      // ✅ তোমার backend response যদি { data: {...} } হয়
       if (res?.data) {
         toast.success("Category created successfully", { id: toastId });
         router.push("/categories");
@@ -97,7 +88,7 @@ const Page = () => {
         <div className="mt-8">
           <button
             type="submit"
-            className="w-full bg-[#390dff] text-white py-3 rounded-3xl font-semibold hover:opacity-90 transition"
+            className="w-full bg-[#390dff] !text-white py-3 rounded-3xl font-semibold hover:opacity-90 transition"
           >
             Create Category
           </button>

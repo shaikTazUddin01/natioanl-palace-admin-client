@@ -486,7 +486,7 @@ const Page = () => {
         onCancel={() => setAdjustOpen(false)}
         onOk={handleAdjustSave}
         okText="Save"
-        destroyOnClose
+        destroyOnHidden
       >
         {selected ? (
           <div className="space-y-4">

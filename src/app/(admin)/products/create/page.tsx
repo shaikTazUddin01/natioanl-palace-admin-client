@@ -13,16 +13,8 @@ import TDInput from "@/src/components/form/TDInput";
 import TDSelect from "@/src/components/form/TDSelect";
 import { useAddProductMutation } from "@/src/redux/features/product/productApi";
 import { useGetCategoriesQuery } from "@/src/redux/features/category/categoryApi";
+import { productValidation } from "@/src/validation/productValidation";
 
-/* ---------------- Validation ---------------- */
-const productValidation = z.object({
-  name: z.string().min(1, "Product name is required"),
-  category: z.string().min(1, "Category is required"),
-  sku: z.string().min(1, "SKU is required"),
-  purchasePrice: z.coerce.number().min(0),
-  salePrice: z.coerce.number().min(0),
-  quantity: z.coerce.number().min(0),
-});
 
 /* ---------------- SKU Generator ---------------- */
 const generateSKU = (name: string, category: string) => {

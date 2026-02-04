@@ -451,7 +451,7 @@ const Page = () => {
         open={viewOpen}
         onCancel={() => setViewOpen(false)}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         {selected ? (
           <div className="space-y-2 text-sm">
@@ -507,7 +507,7 @@ const Page = () => {
         open={paymentOpen}
         onCancel={closePayment}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         {selected ? (
           <div className="pt-2">

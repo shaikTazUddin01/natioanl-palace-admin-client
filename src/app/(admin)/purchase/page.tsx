@@ -398,7 +398,7 @@ const Page = () => {
         open={updateOpen}
         onCancel={closeUpdate}
         footer={null}
-        destroyOnClose
+        destroyOnHidden
       >
         {selected ? (
           <div className="pt-2">
