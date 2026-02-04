@@ -21,7 +21,7 @@ const StockAndDues: React.FC<Props> = ({
   return (
     <Row gutter={[16, 16]} className="mb-6">
       <Col xs={24} lg={8}>
-        <Card title="Low Stock Alerts (<= 5)" bordered={false} style={{ borderRadius: 14 }}>
+        <Card title="Low Stock Alerts (<= 5)" variant="borderless" style={{ borderRadius: 14 }}>
           {loading ? (
             <div className="text-slate-500">Loading…</div>
           ) : lowStockFiltered.length === 0 ? (

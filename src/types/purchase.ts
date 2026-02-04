@@ -7,13 +7,14 @@ export type PurchaseRow = {
   invoiceNo: string;
   supplierName: string;
   productName: string;
-
+  
   date: string;
-
+  
   totalItems: number;
   totalAmount: number;
   paidAmount: number;
   dueAmount: number;
+  purchasePrice?:number;
 
   paymentStatus: PaymentStatus;
   paymentMethod?: string | null;

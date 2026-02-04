@@ -10,7 +10,7 @@ import TDInput from "@/src/components/form/TDInput";
 import TDSelect from "@/src/components/form/TDSelect";
 import { useAddPurchaseMutation } from "@/src/redux/features/purchase/purchaseApi";
 import { purchaseValidation } from "@/src/components/Validation/purchaseValidation";
-import { paymentMethods } from "@/src/utils/selectOptions";
+import { paymentMethods } from "@/src/utils/constant";
 
 
 const Page = () => {

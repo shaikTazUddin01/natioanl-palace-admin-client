@@ -8,7 +8,7 @@ import TDForm from "@/src/components/form/TDForm";
 import TDInput from "@/src/components/form/TDInput";
 import TDSelect from "@/src/components/form/TDSelect";
 import { categoryValidation } from "../../Validation/categoryValidation";
-import { statusOptions } from "@/src/utils/selectOptions";
+import { statusOptions } from "@/src/utils/constant";
 
 
 type Props = {
