@@ -4,6 +4,7 @@ export const purchaseValidation = z
   .object({
     supplierName: z.string().min(1, "Supplier name is required"),
     productName: z.string().min(1, "Product name is required"),
+    category: z.string().min(1, "Category is required"),
     quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
     purchasePrice: z.coerce.number().min(0, "Purchase price must be 0 or more"),
     paidAmount: z.coerce.number().min(0, "Paid amount must be 0 or more"),
