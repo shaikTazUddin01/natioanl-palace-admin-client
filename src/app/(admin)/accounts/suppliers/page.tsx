@@ -1,140 +1,97 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Table, Tag, Space, Button, Modal } from "antd";
-import type { ColumnsType } from "antd/es/table";
-import { EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
-import { useRouter } from "next/navigation";
+import dayjs from "dayjs";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
-
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { FieldValues, SubmitHandler } from "react-hook-form";
-
-import TDForm from "@/src/components/form/TDForm";
-import TDInput from "@/src/components/form/TDInput";
-import TDSelect from "@/src/components/form/TDSelect";
-
+import type { FieldValues, SubmitHandler } from "react-hook-form";
 import {
   useGetPurchasesQuery,
   useDeletePurchaseMutation,
   useUpdatePurchaseMutation,
 } from "@/src/redux/features/purchase/purchaseApi";
+import { PaymentMethod, TSupplierDueRow } from "@/src/types";
+import { getStatus } from "@/src/utils/supplierDue.utils";
+import { buildInvoiceNo } from "@/src/utils/purchase.utils";
+import SupplierDueFilters from "@/src/components/pages/supplierDue/Filters";
+import SupplierDueTable from "@/src/components/pages/supplierDue/Table";
+import SupplierDueViewModal from "@/src/components/pages/supplierDue/ViewModel";
+import SupplierDuePaymentModal from "@/src/components/pages/supplierDue/PaymentModel";
 
-/* ---------------- Payment Options ---------------- */
-const paymentMethods = [
-  { label: "Cash", value: "CASH" },
-  { label: "bKash", value: "BKASH" },
-  { label: "Nagad", value: "NAGAD" },
-  { label: "BANK", value: "BANK" },
-];
-
-/* ---------------- Validation (same logic as create) ---------------- */
-const purchaseValidation = z
-  .object({
-    supplierName: z.string().min(1, "Supplier name is required"),
-    productName: z.string().min(1, "Product name is required"),
-    quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
-    purchasePrice: z.coerce.number().min(0, "Purchase price must be 0 or more"),
-    paidAmount: z.coerce.number().min(0, "Paid amount must be 0 or more"),
-    paymentMethod: z.string().optional(),
-    note: z.string().optional(),
-  })
-  .refine((data) => data.paidAmount === 0 || Boolean(data.paymentMethod), {
-    message: "Payment method is required when paid amount is greater than 0",
-    path: ["paymentMethod"],
-  });
-
-type PaymentStatus = "Paid" | "Partial" | "Due";
-
-type PurchaseRow = {
-  [x: string]: any;
-  key: string;
-  _id?: string;
-
-  invoiceNo: string;
-  supplierName: string;
-  productName: string;
-
-  date: string;
-
-  totalItems: number; // mapped from quantity
-  totalAmount: number;
-  paidAmount: number;
-  dueAmount: number;
-
-  paymentStatus: PaymentStatus;
-  paymentMethod?: string | null;
-  note?: string;
-
-  createdAt?: string;
-};
-
-const formatDate = (d?: string) => {
-  if (!d) return "-";
-  const date = new Date(d);
-  return date.toISOString().slice(0, 10); // yyyy-mm-dd
-};
-
-const buildInvoiceNo = (createdAt?: string, index = 0) => {
-  // simple demo invoice number: PUR- + last 5 digits of time + row index
-  const base = createdAt ? new Date(createdAt).getTime().toString().slice(-5) : `${Date.now()}`.slice(-5);
-  return `PUR-${base}${index}`;
-};
-
-const getPaymentStatus = (due: number, paid: number, total: number): PaymentStatus => {
-  if (total <= 0) return "Due";
-  if (due === 0 && paid >= total) return "Paid";
-  if (paid > 0 && due > 0) return "Partial";
-  return "Due";
-};
-
-const Page = () => {
-  const router = useRouter();
-
+export default function SupplierDuePage() {
   const { data, isLoading, isFetching, isError } = useGetPurchasesQuery(undefined);
   const [deletePurchase] = useDeletePurchaseMutation();
   const [updatePurchase] = useUpdatePurchaseMutation();
 
-  const [viewOpen, setViewOpen] = useState(false);
-  const [updateOpen, setUpdateOpen] = useState(false);
-  const [selected, setSelected] = useState<any>(null);
+  // filters
+  const [supplierFilter, setSupplierFilter] = useState("");
+  const [invoiceFilter, setInvoiceFilter] = useState("");
+  const [dateRange, setDateRange] = useState<any>(null);
 
-  // ✅ adjust based on your API response shape
+  // modals
+  const [viewOpen, setViewOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [selected, setSelected] = useState<TSupplierDueRow | null>(null);
+
   const rawPurchases = data?.data ?? data ?? [];
 
-  const purchaseData: PurchaseRow[] = Array.isArray(rawPurchases)
-    ? rawPurchases.map((p: any, idx: number) => {
+  const dueRows: TSupplierDueRow[] = useMemo(() => {
+    if (!Array.isArray(rawPurchases)) return [];
+
+    return rawPurchases
+      .map((p: any, idx: number) => {
         const qty = Number(p?.quantity ?? 0);
         const price = Number(p?.purchasePrice ?? 0);
+
         const total = Number(p?.totalAmount ?? qty * price);
         const paid = Number(p?.paidAmount ?? 0);
         const due = Number(p?.dueAmount ?? Math.max(total - paid, 0));
 
+        const date = p?.date
+          ? dayjs(p.date).format("YYYY-MM-DD")
+          : p?.createdAt
+          ? dayjs(p.createdAt).format("YYYY-MM-DD")
+          : "-";
+
+        const status = getStatus(due, paid, date);
+
         return {
-          key: p?._id || p?.id || buildInvoiceNo(p?.createdAt, idx),
+          key: p?._id || p?.id || p?.invoiceNo || buildInvoiceNo(p?.createdAt, idx),
           _id: p?._id || p?.id,
 
-          invoiceNo: p?.invoiceNo || buildInvoiceNo(p?.createdAt, idx),
           supplierName: p?.supplierName ?? "-",
-          productName: p?.productName ?? "-",
+          phone: p?.phone ?? p?.supplierPhone ?? undefined,
 
-          date: formatDate(p?.createdAt),
+          purchaseInvoiceNo: p?.invoiceNo ?? buildInvoiceNo(p?.createdAt, idx),
+          date,
 
-          totalItems: qty,
           totalAmount: total,
           paidAmount: paid,
           dueAmount: due,
 
-          paymentStatus: getPaymentStatus(due, paid, total),
-          paymentMethod: p?.paymentMethod ?? null,
+          status,
+          paymentMethod: (p?.paymentMethod ?? null) as PaymentMethod | null,
           note: p?.note ?? "",
 
           createdAt: p?.createdAt,
         };
       })
-    : [];
+      .filter((row) => row.dueAmount > 0);
+  }, [rawPurchases]);
+
+  const filteredData = useMemo(() => {
+    return dueRows.filter((row) => {
+      const matchSupplier = row.supplierName.toLowerCase().includes(supplierFilter.toLowerCase());
+      const matchInvoice = row.purchaseInvoiceNo.toLowerCase().includes(invoiceFilter.toLowerCase());
+
+      const matchDate =
+        !dateRange ||
+        (dayjs(row.date).isAfter(dayjs(dateRange[0]).subtract(1, "day")) &&
+          dayjs(row.date).isBefore(dayjs(dateRange[1]).add(1, "day")));
+
+      return matchSupplier && matchInvoice && matchDate;
+    });
+  }, [dueRows, supplierFilter, invoiceFilter, dateRange]);
 
   /* ---------------- Delete ---------------- */
   const handleDelete = async (id?: string) => {
@@ -142,7 +99,7 @@ const Page = () => {
 
     const result = await Swal.fire({
       title: "Are you sure?",
-      text: "This purchase will be deleted permanently!",
+      text: "This due entry will be deleted permanently!",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete",
@@ -156,280 +113,147 @@ const Page = () => {
 
     try {
       const res = await deletePurchase(id).unwrap();
-      if (res?.success) {
-        toast.success(res?.message || "Purchase deleted successfully", { id: toastId });
-      } else {
-        toast.error(res?.message || "Failed to delete purchase", { id: toastId });
-      }
+      if (res?.success) toast.success(res?.message || "Deleted successfully", { id: toastId });
+      else toast.error(res?.message || "Failed to delete", { id: toastId });
     } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to delete purchase", { id: toastId });
+      toast.error(error?.data?.message || "Failed to delete", { id: toastId });
     }
   };
 
-  /* ---------------- View Modal ---------------- */
-  const openView = (row: PurchaseRow) => {
-    const raw =
-      Array.isArray(rawPurchases) &&
-      rawPurchases.find((p: any) => (p?._id || p?.id) === row._id);
-
-    setSelected(raw || row);
+  /* ---------------- View ---------------- */
+  const openView = (row: TSupplierDueRow) => {
+    setSelected(row);
     setViewOpen(true);
   };
 
-  const closeView = () => {
-    setViewOpen(false);
+  /* ---------------- Payment ---------------- */
+  const openPayment = (row: TSupplierDueRow) => {
+    setSelected(row);
+    setPaymentOpen(true);
+  };
+
+  const closePayment = () => {
+    setPaymentOpen(false);
     setSelected(null);
   };
 
-  /* ---------------- Update Modal ---------------- */
-  const openUpdate = (row: PurchaseRow) => {
-    const raw =
-      Array.isArray(rawPurchases) &&
-      rawPurchases.find((p: any) => (p?._id || p?.id) === row._id);
+  const handleUpdatePayment: SubmitHandler<FieldValues> = async (formData) => {
+    const id = selected?._id;
+    if (!id || !selected) return;
 
-    // normalize selected object for form prefill
-    const normalized = raw || {
-      _id: row._id,
-      supplierName: row.supplierName,
-      productName: row.productName,
-      quantity: row.totalItems,
-      purchasePrice: row.purchasePrice,
-      paidAmount: row.paidAmount,
-      paymentMethod: row.paymentMethod,
-      note: row.note,
-    };
+    const total = Number(selected.totalAmount ?? 0);
+    const prevPaid = Number(selected.paidAmount ?? 0);
+    const newPaid = Number(formData.paidAmount ?? 0);
 
-    setSelected(normalized);
-    setUpdateOpen(true);
-  };
+    if (newPaid < 0) return toast.error("Paid amount cannot be negative");
+    if (newPaid < prevPaid) return toast.error(`Paid amount cannot be less than previous paid (৳ ${prevPaid})`);
+    if (newPaid > total) return toast.error(`Paid amount cannot exceed total amount (৳ ${total})`);
 
-  const closeUpdate = () => {
-    setUpdateOpen(false);
-    setSelected(null);
-  };
+    const newDue = Math.max(total - newPaid, 0);
 
-  const handleUpdate: SubmitHandler<FieldValues> = async (formData) => {
-    const id = selected?._id || selected?.id;
-    if (!id) return;
+    const paymentMethod = newPaid > 0 ? (formData.paymentMethod ?? null) : null;
+    if (newPaid > 0 && !paymentMethod) {
+      return toast.error("Payment method is required when paid amount is greater than 0");
+    }
 
-    const toastId = toast.loading("Updating purchase...");
+    const confirm = await Swal.fire({
+      title: "Confirm Payment Update?",
+      html: `
+        <div style="text-align:left; font-size:14px;">
+          <p><b>Supplier:</b> ${selected.supplierName}</p>
+          <p><b>Invoice:</b> ${selected.purchaseInvoiceNo}</p>
+          <hr/>
+          <p><b>Total:</b> ৳ ${total.toLocaleString()}</p>
+          <p><b>Paid:</b> ৳ ${newPaid.toLocaleString()}</p>
+          <p><b>Due:</b> ৳ ${newDue.toLocaleString()}</p>
+        </div>
+      `,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Yes, update",
+      cancelButtonText: "Cancel",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    const toastId = toast.loading("Updating payment...");
 
     try {
-      const res = await updatePurchase({ id, ...formData }).unwrap();
+      const res = await updatePurchase({
+        id,
+        paidAmount: newPaid,
+        dueAmount: newDue,
+        paymentMethod,
+        purchaseStatus: newDue > 0 ? "DUE" : "PAID",
+        note: formData.note || "",
+      }).unwrap();
 
       if (res?.success) {
-        toast.success(res?.message || "Purchase updated successfully", { id: toastId });
-        closeUpdate();
+        toast.success(res?.message || "Payment updated", { id: toastId });
+        closePayment();
       } else {
-        toast.error(res?.message || "Failed to update purchase", { id: toastId });
+        toast.error(res?.message || "Failed to update", { id: toastId });
       }
     } catch (error: any) {
-      toast.error(error?.data?.message || "Failed to update purchase", { id: toastId });
+      toast.error(error?.data?.message || "Failed to update", { id: toastId });
     }
   };
-
-  const columns: ColumnsType<PurchaseRow> = useMemo(
-    () => [
-      {
-        title: "Invoice No",
-        dataIndex: "invoiceNo",
-        key: "invoiceNo",
-        fixed: "left",
-      },
-      {
-        title: "Supplier",
-        dataIndex: "supplierName",
-        key: "supplierName",
-      },
-      {
-        title: "Product",
-        dataIndex: "productName",
-        key: "productName",
-      },
-      {
-        title: "Date",
-        dataIndex: "date",
-        key: "date",
-      },
-      {
-        title: "Items",
-        dataIndex: "totalItems",
-        key: "totalItems",
-        render: (items) => <Tag>{items}</Tag>,
-      },
-      {
-        title: "Total Amount",
-        dataIndex: "totalAmount",
-        key: "totalAmount",
-        render: (amount) => `৳ ${amount}`,
-      },
-      {
-        title: "Paid",
-        dataIndex: "paidAmount",
-        key: "paidAmount",
-        render: (amount) => `৳ ${amount}`,
-      },
-      {
-        title: "Due",
-        dataIndex: "dueAmount",
-        key: "dueAmount",
-        render: (amount) => (
-          <Tag color={amount > 0 ? "volcano" : "green"}>৳ {amount}</Tag>
-        ),
-      },
-      {
-        title: "Payment Status",
-        dataIndex: "paymentStatus",
-        key: "paymentStatus",
-        render: (status: PaymentStatus) => {
-          const color = status === "Paid" ? "green" : status === "Partial" ? "gold" : "red";
-          return <Tag color={color}>{status}</Tag>;
-        },
-      },
-      {
-        title: "Note",
-        dataIndex: "note",
-        key: "note",
-        ellipsis: true,
-        render: (note) => note || "-",
-      },
-      {
-        title: "Action",
-        key: "action",
-        fixed: "right",
-        render: (_, record) => (
-          <Space>
-            <Button size="small" icon={<EyeOutlined />} onClick={() => openView(record)} />
-            <Button size="small" icon={<EditOutlined />} type="primary" onClick={() => openUpdate(record)} />
-            <Button size="small" icon={<DeleteOutlined />} danger onClick={() => handleDelete(record._id)} />
-          </Space>
-        ),
-      },
-    ],
-    []
-  );
-
-  const defaultValues = selected
-    ? {
-        supplierName: selected?.supplierName ?? "",
-        productName: selected?.productName ?? "",
-        quantity: selected?.quantity ?? 1,
-        purchasePrice: selected?.purchasePrice ?? 0,
-        paidAmount: selected?.paidAmount ?? 0,
-        paymentMethod: selected?.paymentMethod ?? undefined,
-        note: selected?.note ?? "",
-      }
-    : undefined;
 
   return (
     <div className="bg-white rounded-2xl shadow p-6">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">Manage Purchases</h1>
-          <p className="text-slate-500">View, edit and manage your purchase invoices</p>
-        </div>
-
-        <Button type="primary" onClick={() => router.push("/purchase/create")}>
-          Add Purchase
-        </Button>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">Supplier Due List</h1>
+        <p className="text-slate-500">Only unpaid / due purchases are shown here</p>
       </div>
 
-      {/* Error */}
+      {/* Filters */}
+      <SupplierDueFilters
+        supplierFilter={supplierFilter}
+        setSupplierFilter={setSupplierFilter}
+        invoiceFilter={invoiceFilter}
+        setInvoiceFilter={setInvoiceFilter}
+        dateRange={dateRange}
+        setDateRange={setDateRange}
+        onReset={() => {
+          setSupplierFilter("");
+          setInvoiceFilter("");
+          setDateRange(null);
+        }}
+      />
+
+      {/* Table / Error / Empty */}
       {isError ? (
         <div className="p-4 rounded-lg bg-red-50 text-red-600">
-          Failed to load purchases. Please try again.
+          Failed to load supplier dues. Please try again.
+        </div>
+      ) : filteredData.length === 0 && !(isLoading || isFetching) ? (
+        <div className="p-6 rounded-xl bg-slate-50 text-slate-600 text-center">
+          ✅ No supplier due found. (All payments are cleared)
         </div>
       ) : (
-        <Table
-          columns={columns}
-          dataSource={purchaseData}
+        <SupplierDueTable
+          data={filteredData}
           loading={isLoading || isFetching}
-          scroll={{ x: 1200 }}
-          pagination={{ pageSize: 10 }}
+          onView={openView}
+          onPayment={openPayment}
+          onDelete={handleDelete}
         />
       )}
 
-      {/* View Modal */}
-      <Modal
-        title="Purchase Details"
+      {/* Modals */}
+      <SupplierDueViewModal
         open={viewOpen}
-        onCancel={closeView}
-        footer={null}
-        destroyOnHidden
-      >
-        {selected ? (
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-slate-500">Supplier</span>
-              <span className="font-medium">{selected?.supplierName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Product</span>
-              <span className="font-medium">{selected?.productName}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Quantity</span>
-              <span className="font-medium">{selected?.quantity}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Purchase Price</span>
-              <span className="font-medium">৳ {selected?.purchasePrice}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Paid</span>
-              <span className="font-medium">৳ {selected?.paidAmount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Payment Method</span>
-              <span className="font-medium">{selected?.paymentMethod || "-"}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-500">Note</span>
-              <span className="font-medium">{selected?.note || "-"}</span>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
+        onClose={() => setViewOpen(false)}
+        selected={selected}
+      />
 
-      {/* Update Modal */}
-      <Modal
-        title="Update Purchase"
-        open={updateOpen}
-        onCancel={closeUpdate}
-        footer={null}
-        destroyOnHidden
-      >
-        {selected ? (
-          <div className="pt-2">
-            <TDForm
-              key={selected?._id || selected?.id}
-              resolver={zodResolver(purchaseValidation)}
-              onSubmit={handleUpdate}
-              defaultValues={defaultValues as any}
-            >
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
-                <TDInput label="Supplier Name" name="supplierName" required />
-                <TDInput label="Product Name" name="productName" required />
-                <TDInput label="Quantity" name="quantity" type="number" required />
-                <TDInput label="Purchase Price (per unit)" name="purchasePrice" type="number" required />
-                <TDInput label="Paid Amount" name="paidAmount" type="number" required />
-                <TDSelect label="Payment Method" name="paymentMethod" options={paymentMethods} />
-                <TDInput label="Note (Optional)" name="note" />
-              </div>
-
-              <div className="mt-6 flex justify-end gap-2">
-                <Button onClick={closeUpdate}>Cancel</Button>
-                <Button type="primary" htmlType="submit">
-                  Update Purchase
-                </Button>
-              </div>
-            </TDForm>
-          </div>
-        ) : null}
-      </Modal>
+      <SupplierDuePaymentModal
+        open={paymentOpen}
+        onClose={closePayment}
+        selected={selected}
+        onSubmit={handleUpdatePayment}
+      />
     </div>
   );
-};
-
-export default Page;
+}

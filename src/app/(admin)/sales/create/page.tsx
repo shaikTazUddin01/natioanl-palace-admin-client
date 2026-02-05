@@ -4,7 +4,6 @@
 import { useEffect, useMemo } from "react";
 import { FieldValues, SubmitHandler, useFormContext } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -14,38 +13,9 @@ import TDSelect from "@/src/components/form/TDSelect";
 
 import { useAddSaleMutation } from "@/src/redux/features/sales/salesApi";
 import { useGetProductsQuery } from "@/src/redux/features/product/productApi";
+import { sellValidation } from "@/src/validation/salesValidation";
+import { generateInvoiceNo } from "@/src/utils/sales.utils";
 
-/* ---------------- Helpers ---------------- */
-const generateInvoiceNo = () => {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const rand = Math.floor(1000 + Math.random() * 9000);
-  return `SAL-${y}${m}${day}-${rand}`;
-};
-
-/* ---------------- Validation ---------------- */
-const sellValidation = z
-  .object({
-    date: z.string().min(1, "Date is required"),
-    invoiceNo: z.string().min(1, "Invoice number is required"),
-
-    customerName: z.string().min(1, "Customer name is required"),
-    productName: z.string().min(1, "Product name is required"),
-
-    quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
-    unitPrice: z.coerce.number().min(0, "Unit price must be 0 or more"),
-
-    totalAmount: z.coerce.number().min(0),
-    paidAmount: z.coerce.number().min(0),
-
-    note: z.string().optional(),
-  })
-  .refine((data) => data.paidAmount <= data.totalAmount, {
-    message: "Paid amount cannot exceed total amount",
-    path: ["paidAmount"],
-  });
 
 /* ---------------- Auto Calculate Total ---------------- */
 const AutoSellCalc = () => {
@@ -76,11 +46,8 @@ const AutoUnitPriceFromProduct = ({
     const found = products?.find((p: any) => p?.name === productName);
     if (!found) return;
 
-    // ✅ salePrice কে unitPrice হিসেবে ধরলাম
-    // আপনার product field যদি অন্য নামে থাকে (price / sellingPrice) তাহলে এখানে change করবেন
     const price = Number(found?.salePrice ?? 0);
 
-    // unitPrice empty বা 0 থাকলে auto set
     setValue("unitPrice", price);
   }, [productName, products, setValue]);
 
@@ -123,6 +90,7 @@ const Page = () => {
         invoiceNo: data.invoiceNo,
 
         customerName: data.customerName,
+        customerNumber: data.customerNumber,
         productName: data.productName,
 
         quantity: Number(data.quantity),
@@ -174,6 +142,7 @@ const Page = () => {
           <TDInput label="Invoice No (Auto Generated)" name="invoiceNo" required />
 
           <TDInput label="Customer Name" name="customerName" required />
+          <TDInput label="Customer Number" name="customerNumber" required />
 
           {/* ✅ Product Dropdown */}
           <TDSelect
@@ -203,7 +172,7 @@ const Page = () => {
         <div className="mt-8">
           <button
             type="submit"
-            className="w-full bg-[#390dff] text-white py-3 rounded-3xl font-semibold hover:opacity-90 transition"
+            className="w-full bg-[#390dff] !text-white py-3 rounded-3xl font-semibold hover:opacity-90 transition"
           >
             Create Sell
           </button>

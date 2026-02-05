@@ -39,7 +39,7 @@ const StockAndDues: React.FC<Props> = ({
       </Col>
 
       <Col xs={24} lg={8}>
-        <Card title="Out of Stock" bordered={false} style={{ borderRadius: 14 }}>
+        <Card title="Out of Stock" variant="borderless" style={{ borderRadius: 14 }}>
           {loading ? (
             <div className="text-slate-500">Loading…</div>
           ) : outOfStockFiltered.length === 0 ? (
