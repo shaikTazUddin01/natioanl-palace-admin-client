@@ -40,6 +40,7 @@ const Page = () => {
     console.log('object-->',data);
     const quantity = Number(data.quantity || 0);
     const purchasePrice = Number(data.purchasePrice || 0);
+    const salePrice = Number(data.salePrice || 0);
     const paidAmount = Number(data.paidAmount || 0);
 
     const totalAmount = quantity * purchasePrice;
@@ -56,6 +57,7 @@ const Page = () => {
       category: data.category,
       quantity,
       purchasePrice,
+      salePrice,
       paidAmount,
       paymentMethod: paidAmount > 0 ? data.paymentMethod : null,
       note: data.note || "",
@@ -100,15 +102,16 @@ console.log("data-->",payload);
         <AutoTotalAmount />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <TDInput label="Supplier Name" name="supplierName" placeholder="Rahman Traders" required />
+          <TDInput label="Supplier Name" name="supplierName" required />
 
-          <TDInput label="Product Name" name="productName" placeholder="iPhone 13" required />
+          <TDInput label="Product Name" name="productName" required />
 
           <TDInput label="Category" name="category" placeholder="Electronics" required />
 
           <TDInput label="Quantity" name="quantity" type="number" required />
 
           <TDInput label="Purchase Price (per unit)" name="purchasePrice" type="number" required />
+          <TDInput label="Selling Price (per unit)" name="salePrice" type="number" required />
 
           {/* ✅ Auto field: Total payment amount */}
           <TDInput

@@ -14,6 +14,7 @@ import {
   UserOutlined,
   MenuOutlined,
   CloseOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import { logout } from "@/src/redux/features/auth/authSlice";
@@ -60,6 +61,7 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
     if (pathname.startsWith("/accounts/customers")) return "Customer Due";
     if (pathname.startsWith("/accounts/suppliers")) return "Supplier Payable";
     if (pathname.startsWith("/accounts/total")) return "Total Amount";
+    if (pathname.startsWith("/totalProfit")) return "Total Profit";
 
     return "Dashboard";
   }, [pathname]);
@@ -71,6 +73,11 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
         key: "1-dashboard",
         icon: <DashboardOutlined />,
         label: <Link href="/">Dashboard</Link>,
+      },
+      {
+        key: "totalProfit",
+        icon: <BankOutlined />,
+        label: <Link href="/totalProfit">Total Profit</Link>,
       },
 
       {
@@ -172,13 +179,11 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
     [],
   );
 
-  // ✅ Root submenu keys (parent menus)
   const rootSubmenuKeys = useMemo(
-    () => ["2-product", "3-purchase", "4-sales", "5-stock", "6-accounts"],
+    () => ["2-product", "3-purchase", "4-sales", "5-stock", "6-accounts","totalProfit"],
     [],
   );
 
-  // ✅ Accordion openKeys (একটা parent ওপেন থাকলে অন্যটা ক্লোজ)
   const [openKeys, setOpenKeys] = useState<string[]>([]);
 
   useEffect(() => {
@@ -190,6 +195,7 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
     else if (pathname.startsWith("/sales")) parentKey = "4-sales";
     else if (pathname.startsWith("/stock")) parentKey = "5-stock";
     else if (pathname.startsWith("/accounts")) parentKey = "6-accounts";
+    else if (pathname.startsWith("/totalProfit")) parentKey = "totalProfit";
 
     setOpenKeys(parentKey ? [parentKey] : []);
   }, [pathname]);
