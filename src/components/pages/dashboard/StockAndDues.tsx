@@ -57,7 +57,7 @@ const StockAndDues: React.FC<Props> = ({
       </Col>
 
       <Col xs={24} lg={8}>
-        <Card title="Top Dues (Customer & Supplier)" bordered={false} style={{ borderRadius: 14 }}>
+        <Card title="Top Dues (Customer & Supplier)" variant="borderless" style={{ borderRadius: 14 }}>
           <div className="mb-3">
             <div className="text-sm font-semibold text-slate-700 mb-2">Customer Due</div>
             <Table

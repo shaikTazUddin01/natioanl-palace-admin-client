@@ -209,16 +209,14 @@ export default function CustomerDuePageClient() {
         selected={selected}
       />
 
-      <CustomerDuePayModal
-        open={paymentOpen}
-        onClose={() => setPaymentOpen(false)}
-        onOk={handleReceivePayment}
-        selected={selected}
-        payAmount={payAmount}
-        setPayAmount={setPayAmount}
-        payMethod={payMethod}
-        setPayMethod={setPayMethod}
-      />
+     <CustomerDuePayModal
+  open={paymentOpen}
+  onClose={() => setPaymentOpen(false)}
+  onOk={handleReceivePayment}
+  selected={selected}
+  payAmount={payAmount}
+  payMethod={payMethod}
+/>
     </div>
   );
 }

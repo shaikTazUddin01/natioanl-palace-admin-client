@@ -1,21 +1,30 @@
 "use client";
 
-import { PaymentMethod, TCustomerDueRow } from "@/src/types";
-import { Input, Modal, Select } from "antd";
+import { Modal, Button } from "antd";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { FieldValues, SubmitHandler } from "react-hook-form";
 
+import TDForm from "@/src/components/form/TDForm";
+import TDInput from "@/src/components/form/TDInput";
+import TDSelect from "@/src/components/form/TDSelect";
+
+import { PaymentMethod, TCustomerDueRow } from "@/src/types";
+
+const paymentValidation = z.object({
+  amount: z.coerce.number().min(1, "Amount is required"),
+  paymentMethod: z.string().min(1, "Payment method is required"),
+});
 
 type Props = {
   open: boolean;
   onClose: () => void;
-  onOk: () => void;
+  onOk: (data: any) => void;
 
   selected: TCustomerDueRow | null;
 
   payAmount: number;
-  setPayAmount: (v: number) => void;
-
   payMethod: PaymentMethod | undefined;
-  setPayMethod: (v: PaymentMethod | undefined) => void;
 };
 
 export default function CustomerDuePayModal({
@@ -24,55 +33,82 @@ export default function CustomerDuePayModal({
   onOk,
   selected,
   payAmount,
-  setPayAmount,
   payMethod,
-  setPayMethod,
 }: Props) {
+  const handleSubmit: SubmitHandler<FieldValues> = async (data) => {
+    onOk(data);
+  };
+
   return (
     <Modal
       title="Receive Payment"
       open={open}
       onCancel={onClose}
-      onOk={onOk}
-      okText="Receive"
+      footer={null}
       destroyOnHidden
     >
       {selected ? (
-        <div className="space-y-4">
-          <div className="text-sm text-slate-600">
-            <div>
-              <strong>{selected.customerName}</strong> • Invoice{" "}
-              <strong>{selected.invoiceNo}</strong>
-            </div>
-            <div>
-              Due:{" "}
-              <strong className="text-red-600">
+        <div className="pt-2">
+          <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <p className="text-sm text-slate-600">
+              Customer:
+              <span className="ml-2 font-semibold text-slate-900">
+                {selected.customerName}
+              </span>
+            </p>
+
+            <p className="mt-1 text-sm text-slate-600">
+              Invoice:
+              <span className="ml-2 font-semibold text-slate-900">
+                {selected.invoiceNo}
+              </span>
+            </p>
+
+            <p className="mt-2 text-sm">
+              Due Amount:
+              <span className="ml-2 font-bold text-red-600">
                 ৳ {selected.dueAmount.toLocaleString()}
-              </strong>
-            </div>
+              </span>
+            </p>
           </div>
 
-          <Input
-            type="number"
-            min={1}
-            max={selected.dueAmount}
-            value={payAmount}
-            onChange={(e) => setPayAmount(Number(e.target.value))}
-            placeholder="Payment Amount"
-          />
+          <TDForm
+            resolver={zodResolver(paymentValidation)}
+            onSubmit={handleSubmit}
+            defaultValues={{
+              amount: payAmount || selected.dueAmount,
+              paymentMethod: payMethod,
+            }}
+          >
+            <div className="grid grid-cols-1 gap-5">
+              <TDInput
+                label="Payment Amount"
+                name="amount"
+                type="number"
+                required
+              />
 
-          <Select
-            className="w-full"
-            placeholder="Payment Method"
-            value={payMethod}
-            onChange={(v) => setPayMethod(v)}
-            options={[
-              { label: "Cash", value: "CASH" },
-              { label: "Bank", value: "BANK" },
-              { label: "Bkash", value: "BKASH" },
-              { label: "Nagad", value: "NAGAD" },
-            ]}
-          />
+              <TDSelect
+                label="Payment Method"
+                name="paymentMethod"
+                required
+                options={[
+                  { label: "Cash", value: "CASH" },
+                  { label: "Bank", value: "BANK" },
+                  { label: "Bkash", value: "BKASH" },
+                  { label: "Nagad", value: "NAGAD" },
+                ]}
+              />
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <Button onClick={onClose}>Cancel</Button>
+
+              <Button type="primary" htmlType="submit">
+                Receive Payment
+              </Button>
+            </div>
+          </TDForm>
         </div>
       ) : null}
     </Modal>

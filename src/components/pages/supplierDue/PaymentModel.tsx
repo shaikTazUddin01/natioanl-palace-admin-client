@@ -41,32 +41,85 @@ export default function SupplierDuePaymentModal({ open, onClose, selected, onSub
     : undefined;
 
   return (
-    <Modal title="Update Due Payment" open={open} onCancel={onClose} footer={null} destroyOnHidden>
-      {selected ? (
-        <div className="pt-2">
-          <TDForm
-            key={selected._id}
-            resolver={zodResolver(dueValidation)}
-            onSubmit={onSubmit}
-            defaultValues={defaultValues as any}
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
-              <TDInput label="Paid Amount" name="paidAmount" type="number" required />
+    <Modal
+  title="Update Due Payment"
+  open={open}
+  onCancel={onClose}
+  footer={null}
+  destroyOnHidden
+>
+  {selected ? (
+    <div className="pt-2">
+      {/* Supplier Info Card */}
+      <div className="mb-5 rounded-lg border border-slate-200 bg-slate-50 p-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <p className="text-xs text-slate-500">Supplier</p>
+            <p className="font-semibold text-slate-900">
+              {selected.supplierName}
+            </p>
+          </div>
 
-              <TDSelect label="Payment Method" name="paymentMethod" options={paymentMethods} />
+          <div>
+            <p className="text-xs text-slate-500">Purchase Invoice</p>
+            <p className="font-semibold text-slate-900">
+              {selected.purchaseInvoiceNo}
+            </p>
+          </div>
 
-              <TDInput label="Note (Optional)" name="note" placeholder="Any note" />
-            </div>
-
-            <div className="mt-6 flex justify-end gap-2">
-              <Button onClick={onClose}>Cancel</Button>
-              <Button type="primary" htmlType="submit">
-                Update Payment
-              </Button>
-            </div>
-          </TDForm>
+          <div>
+            <p className="text-xs text-slate-500">Current Due</p>
+            <p className="font-bold text-red-600">
+              ৳ {selected.dueAmount.toLocaleString()}
+            </p>
+          </div>
         </div>
-      ) : null}
-    </Modal>
+      </div>
+
+      <TDForm
+        key={selected._id}
+        resolver={zodResolver(dueValidation)}
+        onSubmit={onSubmit}
+        defaultValues={defaultValues as any}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-left">
+          <TDInput
+            label="Paid Amount"
+            name="paidAmount"
+            type="number"
+            required
+          />
+
+          <TDSelect
+            label="Payment Method"
+            name="paymentMethod"
+            options={paymentMethods}
+          />
+
+          <div className="md:col-span-2">
+            <TDInput
+              label="Note (Optional)"
+              name="note"
+              placeholder="Enter payment note"
+            />
+          </div>
+        </div>
+
+        <div className="mt-6 flex justify-end gap-2">
+          <Button onClick={onClose}>
+            Cancel
+          </Button>
+
+          <Button
+            type="primary"
+            htmlType="submit"
+          >
+            Update Payment
+          </Button>
+        </div>
+      </TDForm>
+    </div>
+  ) : null}
+</Modal>
   );
 }
