@@ -133,7 +133,7 @@ const Page = () => {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow p-6">
+    <div className="bg-white rounded-2xl shadow md:p-6">
       <ManageHeader />
 
       {isError ? (

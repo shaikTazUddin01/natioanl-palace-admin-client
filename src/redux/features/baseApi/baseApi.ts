@@ -5,7 +5,7 @@ import { RootState } from "../../store";
 const baseQuery = fetchBaseQuery({
   baseUrl:
   // "http://localhost:5000/api",
-  "https://national-palace-server-mocha.vercel.app/api",
+  "https://inventory-management-server-sand.vercel.app/api",
   credentials: "include",
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth?.token;

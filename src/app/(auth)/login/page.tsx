@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 
 import { toast } from "sonner";
 
-import loginImage from "@/src/assets/travelLogin.webp";
+import loginImage from "@/src/assets/img1.jpg";
+// import loginImage from "@/src/assets/travelLogin.webp";
 import loginBg from "@/src/assets/login1.webp";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,13 +53,13 @@ const Page = () => {
       className="min-h-screen w-full lg:p-20 bg-cover flex items-center justify-center text-black"
       style={{ backgroundImage: `url(${loginBg.src})` }}
     >
-      <div className="bg-white rounded-2xl grid grid-cols-1 lg:grid-cols-2 shadow max-w-7xl w-full">
+      <div className="bg-white rounded-2xl grid grid-cols-1 lg:grid-cols-2 shadow max-w-7xl w-full overflow-hidden">
         {/* Image Section */}
         <div className="hidden lg:flex min-w-[500px] min-h-[450px]">
           <Image
             src={loginImage}
             alt="login image"
-            className="object-cover w-full h-full rounded-2xl"
+            className="object-cover w-full h-full "
           />
         </div>
 

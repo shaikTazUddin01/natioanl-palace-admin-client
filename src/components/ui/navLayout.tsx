@@ -41,7 +41,7 @@ const NavLayout: React.FC<NavLayoutProps> = ({ children }) => {
     setMobileOpen(false);
   }, [pathname]);
 
-  // ✅ Header title based on route (আপনার মতোই রাখা হয়েছে)
+
   const activeKey = useMemo(() => {
     if (pathname.startsWith("/products/create")) return "Create Product";
     if (pathname.startsWith("/products")) return "Manage Products";
