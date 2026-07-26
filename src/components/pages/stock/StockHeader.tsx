@@ -14,9 +14,9 @@ export default function StockHeader({ onOpenAdjust }: Props) {
         <p className="text-slate-500">Monitor stock, movement and inventory value</p>
       </div>
 
-      <Button type="primary" onClick={onOpenAdjust}>
+      {/* <Button type="primary" onClick={onOpenAdjust}>
         Stock Adjustment
-      </Button>
+      </Button> */}
     </div>
   );
 }

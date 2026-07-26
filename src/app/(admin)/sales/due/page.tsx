@@ -215,9 +215,9 @@ export default function CustomerDuePageClient() {
         onOk={handleReceivePayment}
         selected={selected}
         payAmount={payAmount}
-        setPayAmount={setPayAmount}
+        // setPayAmount={setPayAmount}
         payMethod={payMethod}
-        setPayMethod={setPayMethod}
+        // setPayMethod={setPayMethod}
       />
     </div>
   );
